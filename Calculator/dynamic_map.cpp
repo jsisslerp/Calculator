@@ -50,3 +50,4 @@ void* dynamic_map::_get_return(string key) const {
 bool dynamic_map::_has_return(string key) const {
 	return _return_map.find(key) != _return_map.end();
 }
+

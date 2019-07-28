@@ -1,7 +1,7 @@
 // -*- C++ -*-
 
 /*
- * dynamic_map provides a generic interface for managing a cache of blah blah blah...
+ * dynamic_map provides a generic interface for managing a cache of blah blah blah... TODO: complete.
  */
 
 #ifndef _DYNAMIC_MAP
@@ -36,17 +36,17 @@ public:
 	}
 
 	template <class T>
-	void set(dynamic_map_key<T>& key, T data) {
+	void set(const dynamic_map_key<T>& key, const T& data) {
 		_set_data(key.get_name(), new T(data));
 		_return_map.clear();
 	}
 
 	template <class T>
-	T get(dynamic_map_key<T>& key) const {
+	T get(const dynamic_map_key<T>& key) const {
 		if (_has_data(key.get_name()))
-			return *(T*)_get_data(key.get_name());
+			return *reinterpret_cast<T*>(_get_data(key.get_name()));
 		else if (_has_return(key.get_name()))
-			return *(T*)_get_return(key.get_name());
+			return *reinterpret_cast<T*>(_get_return(key.get_name()));
 		else if (_has_function(key.get_name())) {
 			T(*function)(const dynamic_map&) = reinterpret_cast<T(*)(const dynamic_map&)>(_get_function(key.get_name()));
 			T returned = function(*this);
@@ -58,12 +58,12 @@ public:
 	}
 
 	template <class T>
-	bool has(dynamic_map_key<T>& key) const {
-		return _has_data(key.get_name()) || _has_function(key.get_name());
+	bool has(const dynamic_map_key<T>& key) const {
+		return _has(key.get_name());
 	}
 
 	template <class T>
-	void set(dynamic_map_key<T>& key, T(*function)(const dynamic_map&)) {
+	void set(const dynamic_map_key<T>& key, T(*function)(const dynamic_map&)) {
 		_set_function(key.get_name(), reinterpret_cast<void*>(function));
 		_return_map.clear();
 	}
@@ -74,6 +74,10 @@ public:
 
 private:
 	map<string, void*> _data_map, _function_map, _return_map;
+
+	bool _has(string key) const {
+		return _has_data(key) || _has_return(key) || _has_function(key);
+	}
 
 	void  _set_data(string key, void* data);
 	void* _get_data(string key) const;
