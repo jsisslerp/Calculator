@@ -1,7 +1,13 @@
-// -*- C++ -*-
+// -*- C++ -*
 
 /*
- * dynamic_map provides a generic interface for managing a cache of blah blah blah... TODO: complete.
+ * dynamic_map provides a generic interface for managing a cache of typed data and functions. Map keys are instances of the generic
+ * class dynamic_map_key which are labeled with a unique string and are parameterized by a single type T. The dynamic_map interface
+ * consists of the classic "get, set, has" functions. Both data and functions may be written to the map. When reading from the map, the
+ * internal "data" cache is examined first, followed by the "return" cache which holds values returned from cached functions, and lastly
+ * the function cache. A function cache hit results in the function being evaluated and it's result saved to the "return" cache. If no
+ * data or functions are cached under a given key, then the key's default value is returned. Any set on a dynamic_map will cause the 
+ * function return cache to be cleared to ensure that any possible dependencies on the changed data will be re-evaluated. 
  */
 
 #ifndef _DYNAMIC_MAP
@@ -9,6 +15,7 @@
 
 #include <string>
 #include <map>
+#include <iostream>
 using namespace std;
 
 template <class T>
@@ -18,7 +25,7 @@ private:
 	const T      _default_value;
 
 public:
-	dynamic_map_key(string name, T default_value) :
+	dynamic_map_key(string name, const T& default_value) :
 		_name(name),
 		_default_value(default_value) {
 	}
@@ -71,6 +78,8 @@ public:
 	void clear() {
 		_return_map.clear();
 	}
+
+	friend std::ostream& operator<<(std::ostream& os, const dynamic_map& m);
 
 private:
 	map<string, void*> _data_map, _function_map, _return_map;

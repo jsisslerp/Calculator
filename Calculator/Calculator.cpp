@@ -8,11 +8,9 @@ using namespace std;
 
 #include <assert.h>
 
-#include "dynamic_map.h"
+#include "Calculator.h"
 
 typedef vector<pair<int, double> > CallSchedule;
-
-class Calculator;
 
 // Definitions of all the dynamic map keys.
 
@@ -29,105 +27,44 @@ dynamic_map_key<int> DMK_VALUE_DATE("VALUE_DATE", 20150601);
 
 // Example polymorhpic strategy: coupon plus reset. 
 
-class ValuationStrategy {
-public:
-	virtual double get_clean_price(const Calculator& c) const = 0;
-	virtual double get_pv(const Calculator& c) const = 0;
-};
+Calculator::Calculator() :
+	_coupon_plus_reset_strategy(new CouponPlusResetStrategy),
+	_date_strategy(new DateStrategy),
+	_valuation_strategy(new CleanPriceQuote),
+	_cache() {
+	_cache.set(DMK_CALCULATOR, this);
+	_cache.set(DMK_COUPON_PLUS_RESET, &get_coupon_plus_reset);
+	_cache.set(DMK_NEXT_CALL, &get_next_call);
+	_cache.set(DMK_CLEAN_PRICE, &get_clean_price);
+	_cache.set(DMK_PV, &get_pv);
+}
 
-class CleanPriceQuote : public ValuationStrategy {
-public:
-	virtual double get_clean_price(const Calculator& c) const;
-	virtual double get_pv(const Calculator& c) const;
-};
+// dynamic cache wrapper function definitions
 
-class CouponPlusResetStrategy {
-public:
-	virtual double get_coupon_plus_reset(const Calculator& c) const;
-};
+double Calculator::get_coupon_plus_reset(const dynamic_map& m) {
+	const Calculator* _this = m.get(DMK_CALCULATOR);
+	return _this->_coupon_plus_reset_strategy->get_coupon_plus_reset(*_this);
+}
 
-class NormalizedCouponPlusResetStrategy : public CouponPlusResetStrategy {
-public:
-	virtual double get_coupon_plus_reset(const Calculator& c) const;
-};
+pair<int, double> Calculator::get_next_call(const dynamic_map& m) {
+	const Calculator* _this = m.get(DMK_CALCULATOR);
+	return _this->_date_strategy->get_next_call(*_this);
+}
 
-class DateStrategy {
-public:
-	virtual pair<int, double> get_next_call(const Calculator& c) const;
-};
+double Calculator::get_clean_price(const dynamic_map& m) {
+	const Calculator* _this = m.get(DMK_CALCULATOR);
+	return _this->_valuation_strategy->get_clean_price(*_this);
+}
 
-// Calculator class has fields to hold a pointer to each strategy and a dynamic map cache.
+double Calculator::get_pv(const dynamic_map& m) {
+	const Calculator* _this = m.get(DMK_CALCULATOR);
+	return _this->_valuation_strategy->get_pv(*_this);
+}
 
-class Calculator {
-private:
-	const CouponPlusResetStrategy* _coupon_plus_reset_strategy;
-	const DateStrategy* _date_strategy;
-	const ValuationStrategy* _valuation_strategy;
-
-	dynamic_map _cache;
-
-	// For each strategy virtual method, a private static wrapper function must be
-	// defined whose boiler plate function is to extract the calculator and invoke
-	// a strategy function.
-
-	static double get_coupon_plus_reset(const dynamic_map& m) {
-		const Calculator* _this = m.get(DMK_CALCULATOR);
-		return _this->_coupon_plus_reset_strategy->get_coupon_plus_reset(*_this);
-	}
-
-	static pair<int, double> get_next_call(const dynamic_map& m) {
-		const Calculator* _this = m.get(DMK_CALCULATOR);
-		return _this->_date_strategy->get_next_call(*_this);
-	}
-
-	static double get_clean_price(const dynamic_map& m) {
-		const Calculator* _this = m.get(DMK_CALCULATOR);
-		return _this->_valuation_strategy->get_clean_price(*_this);
-	}
-
-	static double get_pv(const dynamic_map& m) {
-		const Calculator* _this = m.get(DMK_CALCULATOR);
-		return _this->_valuation_strategy->get_pv(*_this);
-	}
-
-public:
-	Calculator() :
-		_coupon_plus_reset_strategy(new CouponPlusResetStrategy),
-		_date_strategy(new DateStrategy),
-		_valuation_strategy(new CleanPriceQuote),
-		_cache() {
-		_cache.set(DMK_CALCULATOR, this);
-		_cache.set(DMK_COUPON_PLUS_RESET, &get_coupon_plus_reset);
-		_cache.set(DMK_NEXT_CALL, &get_next_call);
-		_cache.set(DMK_CLEAN_PRICE, &get_clean_price);
-		_cache.set(DMK_PV, &get_pv);
-	}
-
-	template <class T>
-	void set(dynamic_map_key<T>& key, T data) {
-		_cache.set(key, data);
-	}
-
-	template <class T>
-	T get(dynamic_map_key<T>& key) const {
-		return _cache.get(key);
-	}
-
-	template <class T>
-	bool has(dynamic_map_key<T>& key) const {
-		return _cache.has(key);
-	}
-
-	void set_coupon_plus_reset_strategy(const CouponPlusResetStrategy* strategy) {
-		_coupon_plus_reset_strategy = strategy;
-		_cache.clear();
-	}
-
-	void set_valuation_strategy(const ValuationStrategy* strategy) {
-		_valuation_strategy = strategy;
-		_cache.clear();
-	}
-};
+ostream& operator << (ostream& out, const Calculator& c) {
+	out << c._cache << endl;
+	return out;
+}
 
 double CleanPriceQuote::get_clean_price(const Calculator& c) const {
 	return c.get(DMK_CLEAN_PRICE);
@@ -186,4 +123,6 @@ int main()
 	calc.set_valuation_strategy(new CleanPriceQuote);
 	calc.set(DMK_FACE_AMOUNT, 1000000.0);
 	cout << calc.get(DMK_PV) << endl;
+
+	cout << calc << endl;
 }

@@ -1,6 +1,5 @@
 #include "dynamic_map.h"
 
-#include <iostream>
 #include <cmath>
 using namespace std;
 
@@ -51,3 +50,23 @@ bool dynamic_map::_has_return(string key) const {
 	return _return_map.find(key) != _return_map.end();
 }
 
+ostream& operator<<(ostream& os, const dynamic_map& m) {
+	os << "dynamic_map (" << &m << "):\n";
+
+	os << "\t_data_map:" << endl;
+	for (auto it = m._data_map.begin(); it != m._data_map.end(); it++) {
+		os << "\t\t" << it->first << ":\t" << it->second << endl;
+	}
+
+	os << "\t_function_map:" << endl;
+	for (auto it = m._function_map.begin(); it != m._function_map.end(); it++) {
+		os << "\t\t" << it->first << ":\t" << it->second << endl;
+	}
+
+	os << "\t_return_map:" << endl;
+	for (auto it = m._return_map.begin(); it != m._return_map.end(); it++) {
+		os << "\t\t" << it->first << ":\t" << it->second << endl;
+	}
+
+	return os;
+}
